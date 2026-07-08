@@ -1,0 +1,25 @@
+[
+  {
+    "name": "My Collection",
+    "media_list_data": [
+      {
+        "string_map_data": {
+          "Saved on": { "timestamp": 1704067200 },
+          "Caption": { "value": "An inspiring post about productivity #work" }
+        },
+        "url": "https://www.instagram.com/p/META001/",
+        "title": "Creator One",
+        "owner_username": "creatorone"
+      }
+    ]
+  },
+  {
+    "string_map_data": {
+      "Saved on": { "timestamp": 1706745600 }
+    },
+    "url": "https://www.instagram.com/reel/META002/",
+    "caption": "A reel about design #design #inspiration",
+    "title": "Creator Two",
+    "owner_username": "creatortwo"
+  }
+]

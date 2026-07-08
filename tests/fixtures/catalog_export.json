@@ -1,0 +1,20 @@
+{
+  "posts": [
+    {
+      "id": "CATALOG001",
+      "url": "https://www.instagram.com/reel/CATALOG001/",
+      "caption": "An old saved reel",
+      "owner_username": "oldsave",
+      "owner_name": "Old Save",
+      "timestamp": 1700000000,
+      "type": "reel",
+      "collections": ["Archive"],
+      "saved": true,
+      "tldr": "Preserved TL;DR from old export",
+      "stags": ["archive", "reel"]
+    }
+  ],
+  "collections": [
+    { "name": "Archive", "count": 1, "updated": 1700000000 }
+  ]
+}
