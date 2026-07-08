@@ -41,6 +41,22 @@ function getDefaultModel(provider: AiProviderName): string {
   return provider === "anthropic" ? "claude-haiku-4-5" : "gpt-4o-mini";
 }
 
+export function hasAiKey(): boolean {
+  try {
+    return !!(localStorage.getItem(LS_ANTHROPIC_KEY) || localStorage.getItem(LS_OPENAI_KEY));
+  } catch {
+    return false;
+  }
+}
+
+export function syncAiButtonState(): void {
+  const btn = document.getElementById("ai-btn") as HTMLButtonElement | null;
+  if (!btn) return;
+  const enabled = hasAiKey();
+  btn.disabled = !enabled;
+  btn.title = enabled ? "Generate AI summaries" : "Add an API key in Settings to enable AI summaries";
+}
+
 export function openSettings(): void {
   const savedProvider = (localStorage.getItem(LS_PROVIDER) ?? "anthropic") as AiProviderName;
   const savedModel = localStorage.getItem(LS_MODEL) ?? getDefaultModel(savedProvider);
@@ -117,15 +133,18 @@ export function openSettings(): void {
       ? (document.getElementById("anthropic-model") as HTMLSelectElement)
       : (document.getElementById("openai-model") as HTMLSelectElement);
     saveAiSettings(provider, modelSelect.value, keyInput.value.trim());
+    syncAiButtonState();
     closeSettings();
   });
 
   document.getElementById("remove-anthropic-key")?.addEventListener("click", () => {
     removeAiKey("anthropic");
+    syncAiButtonState();
     closeSettings();
   });
   document.getElementById("remove-openai-key")?.addEventListener("click", () => {
     removeAiKey("openai");
+    syncAiButtonState();
     closeSettings();
   });
 }

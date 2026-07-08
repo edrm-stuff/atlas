@@ -16,6 +16,7 @@ import { migrateFromLocalStorage } from "./storage/migrate.js";
 import { paintCollectionColors } from "./ui/card.js";
 import { renderStats, renderNav, renderGrid } from "./ui/render.js";
 import { init, wireEvents } from "./ui/events.js";
+import { syncAiButtonState } from "./ui/settings.js";
 
 async function boot(): Promise<void> {
   await openDb();
@@ -40,6 +41,7 @@ async function boot(): Promise<void> {
   paintCollectionColors(catalog.collections);
   init(catalog, state);
   wireEvents();
+  syncAiButtonState();
   renderStats(catalog, state);
   renderNav(catalog, state, { scope: "all", type: "all", q: "", sort: "new" });
   renderGrid(catalog, state, { scope: "all", type: "all", q: "", sort: "new" });
