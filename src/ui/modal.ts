@@ -1,8 +1,12 @@
 import type { Catalog, UserState } from "../types.js";
-import { esc, fmtDate, initial, igProfile } from "../utils.js";
+import { esc, fmtDate, initial, igProfile, safeHref } from "../utils.js";
 import { getCollectionColor } from "./card.js";
 
-export let modalId: string | null = null;
+let modalId: string | null = null;
+
+export function getModalId(): string | null {
+  return modalId;
+}
 
 export function openModal(id: string, catalog: Catalog, state: UserState): void {
   const p = catalog.posts.find((x) => x.id === id);
@@ -48,7 +52,7 @@ export function openModal(id: string, catalog: Catalog, state: UserState): void 
       <div class="mlabel">Notes</div>
       <textarea class="notes" id="notebox" placeholder="Why did you save this? What do you want to do with it?">${esc(state.notes[id] ?? "")}</textarea>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px">
-        <a class="openig" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">Open on Instagram ↗</a>
+        <a class="openig" href="${esc(safeHref(p.url))}" target="_blank" rel="noopener noreferrer">Open on Instagram ↗</a>
         <button class="toolbtn ghost" data-generate-single="${esc(id)}" style="font-size:11px">✨ Generate AI summary</button>
       </div>
     </div>`;

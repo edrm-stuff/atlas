@@ -9,7 +9,6 @@ export function normalizeCatalog(raw: unknown): Catalog {
 
   for (let i = 0; i < sourcePosts.length; i++) {
     const post = normalizeCatalogPost(sourcePosts[i], i);
-    if (!post.url && !post.id) continue;
     const key = post.id || post.url;
     if (byId.has(key)) {
       const prev = byId.get(key)!;

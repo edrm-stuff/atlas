@@ -49,9 +49,13 @@ export async function putPosts(posts: CatalogPost[]): Promise<void> {
   await Promise.all(posts.map((p) => wrap(s.put(p))));
 }
 
-export async function clearPosts(): Promise<void> {
+export async function replacePosts(posts: CatalogPost[]): Promise<void> {
   const db = await openDb();
-  await wrap(store(tx(db, ["posts"], "readwrite"), "posts").clear());
+  const t = tx(db, ["posts"], "readwrite");
+  const s = store(t, "posts");
+  s.clear();
+  await Promise.all(posts.map((p) => wrap(s.put(p))));
+  if (!posts.length) await new Promise((res, rej) => { t.oncomplete = res; t.onerror = () => rej(t.error); });
 }
 
 export async function getAllCollections(): Promise<Collection[]> {
