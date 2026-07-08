@@ -2,8 +2,6 @@ import type { CatalogPost } from "../types.js";
 import type { AiProvider } from "./provider.js";
 import { putPost } from "../storage/db.js";
 
-export type GenerateMode = "single" | "visible" | "all-missing";
-
 export interface GenerateProgress {
   current: number;
   total: number;
@@ -18,6 +16,30 @@ let _cancelled = false;
 
 export function cancelGeneration(): void {
   _cancelled = true;
+}
+
+function isRetryable(err: unknown): boolean {
+  const status = (err as { status?: number })?.status;
+  return status === 429 || (typeof status === "number" && status >= 500);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((res) => setTimeout(res, ms));
+}
+
+async function generateWithRetry(
+  provider: AiProvider,
+  post: CatalogPost,
+  retries = 2,
+): Promise<Awaited<ReturnType<AiProvider["generate"]>>> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await provider.generate(post);
+    } catch (err) {
+      if (attempt >= retries || !isRetryable(err)) throw err;
+      await sleep(500 * 2 ** attempt);
+    }
+  }
 }
 
 export async function generateBatch(
@@ -39,7 +61,7 @@ export async function generateBatch(
       return;
     }
     try {
-      const output = await provider.generate(post);
+      const output = await generateWithRetry(provider, post);
       const updated: CatalogPost = {
         ...post,
         tldr: output.tldr,

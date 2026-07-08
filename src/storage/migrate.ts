@@ -21,6 +21,9 @@ export async function migrateFromLocalStorage(): Promise<boolean> {
       await saveUserState(state);
     }
 
+    localStorage.removeItem(LS_CATALOG);
+    localStorage.removeItem(LS_STATE);
+
     return true;
   } catch {
     return false;

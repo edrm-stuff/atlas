@@ -1,4 +1,4 @@
-export type PostType = "reel" | "post" | "video";
+export type PostType = "reel" | "post";
 
 export interface AiStatus {
   status: "pending" | "done" | "error";

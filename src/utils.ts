@@ -1,5 +1,5 @@
 export function esc(s: string | null | undefined): string {
-  return (s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] ?? c));
+  return (s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] ?? c));
 }
 
 export function fmtDate(ts: number | null): string {
@@ -10,6 +10,12 @@ export function fmtDate(ts: number | null): string {
 
 export function cleanUrl(url: unknown): string {
   return String(url ?? "").trim();
+}
+
+export function safeHref(url: string | null | undefined): string {
+  const u = (url ?? "").trim();
+  if (/^https?:\/\//i.test(u)) return u;
+  return "#";
 }
 
 export function shortcodeFromUrl(url: string): string {
@@ -31,14 +37,14 @@ export function normalizeText(s: string | null | undefined): string {
 
 export function decodeHtml(s: string | null | undefined): string {
   return (s ?? "")
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
     .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
-    .replace(/&#039;|&apos;/g, "'");
+    .replace(/&#039;|&apos;/g, "'")
+    .replace(/&amp;/g, "&");
 }
 
 export function parseSavedDate(text: string): number | null {
@@ -53,5 +59,5 @@ export function initial(ownerName: string, ownerUsername: string): string {
 
 export function igProfile(ownerUsername: string, ownerUrl: string): string {
   if (ownerUsername) return "https://www.instagram.com/" + encodeURIComponent(ownerUsername) + "/";
-  return ownerUrl || "#";
+  return safeHref(ownerUrl);
 }

@@ -1,13 +1,11 @@
 import type { Catalog, UserState, ViewState } from "../types.js";
-import { saveUserState, putPosts, putCollections } from "../storage/db.js";
-import { openModal, closeModal } from "./modal.js";
+import { saveUserState, replacePosts, putCollections } from "../storage/db.js";
+import { openModal, closeModal, getModalId } from "./modal.js";
 import { openSettings, closeSettings, loadAiSettings } from "./settings.js";
 import { renderNav, renderGrid, renderStats, extendGrid, updateCardInGrid } from "./render.js";
 import { normalizeImportedData, parseImportedText } from "../import/index.js";
-import { AnthropicProvider } from "../ai/anthropic.js";
-import { OpenAiProvider } from "../ai/openai.js";
+import type { AiProvider } from "../ai/provider.js";
 import { generateBatch, cancelGeneration } from "../ai/generate.js";
-import { currentSet } from "../filter.js";
 import { paintCollectionColors } from "./card.js";
 
 let _catalog: Catalog = { posts: [], collections: [] };
@@ -134,7 +132,7 @@ export function wireEvents(): void {
     // Toggle tag in modal
     const toggleTagEl = t.closest("[data-toggletag]") as HTMLElement | null;
     if (toggleTagEl) {
-      const { modalId } = await import("./modal.js");
+      const modalId = getModalId();
       if (!modalId) return;
       const tag = toggleTagEl.dataset.toggletag!;
       const arr = _state.tags[modalId] ?? (_state.tags[modalId] = []);
@@ -183,10 +181,10 @@ export function wireEvents(): void {
     }
   });
 
-  // Actually wire notebox by re-reading modalId from module
-  document.addEventListener("input", async (e) => {
+  // Notebox
+  document.addEventListener("input", (e) => {
     if ((e.target as HTMLElement).id !== "notebox") return;
-    const { modalId } = await import("./modal.js");
+    const modalId = getModalId();
     if (modalId) { _state.notes[modalId] = (e.target as HTMLTextAreaElement).value; queueSave(); }
   });
 
@@ -256,7 +254,7 @@ async function handleImport(file: File): Promise<void> {
     _view = { scope: "all", type: "all", q: "", sort: "new" };
     resetViewControls();
     paintCollectionColors(_catalog.collections);
-    await putPosts(_catalog.posts);
+    await replacePosts(_catalog.posts);
     await putCollections(_catalog.collections);
     await saveUserState(_state);
     rerender();
@@ -276,28 +274,27 @@ async function handleReset(): Promise<void> {
   _state = { fav: {}, done: {}, notes: {}, tags: {}, customTags: [] };
   _view = { scope: "all", type: "all", q: "", sort: "new" };
   resetViewControls();
-  await putPosts([]);
+  await replacePosts([]);
   await putCollections([]);
   await saveUserState(_state);
   rerender();
   setSavemsg("catalog reset");
 }
 
-async function handleAiBatch(mode: "all-missing" | "single" | "visible", singleId?: string): Promise<void> {
+async function handleAiBatch(mode: "all-missing" | "single", singleId?: string): Promise<void> {
   if (_generating) return;
   const settings = loadAiSettings();
   if (!settings) { openSettings(); return; }
 
   let posts = _catalog.posts;
   if (mode === "all-missing") posts = posts.filter((p) => !p.ai || p.ai.status !== "done");
-  else if (mode === "visible") posts = currentSet(_catalog, _state, _view).filter((p) => !p.ai || p.ai.status !== "done");
   else if (mode === "single" && singleId) posts = _catalog.posts.filter((p) => p.id === singleId);
 
   if (!posts.length) { alert("No posts need AI summaries."); return; }
 
-  const provider = settings.provider === "anthropic"
-    ? new AnthropicProvider(settings.apiKey, settings.model)
-    : new OpenAiProvider(settings.apiKey, settings.model);
+  const provider: AiProvider = settings.provider === "anthropic"
+    ? new (await import("../ai/anthropic.js")).AnthropicProvider(settings.apiKey, settings.model)
+    : new (await import("../ai/openai.js")).OpenAiProvider(settings.apiKey, settings.model);
 
   _generating = true;
   showProgressBar(true);
