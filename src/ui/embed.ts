@@ -39,7 +39,7 @@ export function renderEmbed(container: HTMLElement, url: string): void {
   loadEmbedScript()
     .then(() => {
       if (done) return;
-      container.innerHTML = `<blockquote class="instagram-media" data-instgrm-permalink="${url}" data-instgrm-captioned="false" data-instgrm-version="14"></blockquote>`;
+      container.innerHTML = `<blockquote class="instagram-media" data-instgrm-permalink="${url}" data-instgrm-version="14"></blockquote>`;
       window.instgrm?.Embeds.process();
       done = true;
       clearTimeout(timeout);

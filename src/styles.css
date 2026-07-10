@@ -241,10 +241,10 @@ select.sort:focus { outline: none; }
 /* ---- Modal ---- */
 .overlay { position: fixed; inset: 0; background: rgba(28,24,20,.55); backdrop-filter: blur(3px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
 .overlay.show { display: flex; }
-.modal { background: var(--paper2); border: 2px solid var(--ink); box-shadow: 18px 18px 0 rgba(28,24,20,.25); max-width: 1000px; width: 100%; max-height: 88vh; overflow: hidden; }
+.modal { background: var(--paper2); border: 2px solid var(--ink); box-shadow: 18px 18px 0 rgba(28,24,20,.25); max-width: 1140px; width: 100%; max-height: 88vh; overflow: hidden; }
 .modal-split { display: flex; max-height: 88vh; }
-.modal-media { flex: 0 0 auto; width: 400px; max-width: 45vw; min-width: 326px; max-height: 88vh; overflow: hidden; border-right: 2px solid var(--ink); background: var(--card); display: flex; align-items: center; justify-content: center; }
-.modal-media iframe { max-height: 88vh !important; }
+.modal-media { flex: 0 0 auto; position: relative; width: 540px; max-width: 45vw; min-width: 326px; max-height: 88vh; overflow: hidden; border-right: 2px solid var(--ink); background: var(--card); display: flex; align-items: center; justify-content: center; }
+.modal-media iframe, .modal-media .instagram-media { width: 100% !important; max-height: 88vh !important; }
 .modal-info { flex: 1 1 auto; min-width: 0; max-height: 88vh; overflow-y: auto; }
 .embed-skeleton, .embed-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; height: 100%; min-height: 400px; width: 100%; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--muted); text-align: center; padding: 20px; }
 .embed-fallback a { color: var(--ink); font-weight: 700; }
