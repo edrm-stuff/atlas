@@ -1,5 +1,6 @@
 import type { CatalogPost, UserState } from "../types.js";
-import { esc, fmtDate, initial, igProfile } from "../utils.js";
+import { esc, fmtDate, igProfile } from "../utils.js";
+import { getTagColor, tintedChipStyle } from "../tagColors.js";
 
 const COL_COLORS: Record<string, string> = {};
 const PALETTE = ["#d6422a", "#1f5e54", "#c98a1a", "#7b4ea8", "#2b6cb0", "#b03a6e", "#3d7a3d", "#a05a2c"];
@@ -18,7 +19,10 @@ export function cardHtml(p: CatalogPost, state: UserState): string {
 
   const chips = [
     ...p.collections.map((c) => `<span class="chip"><span class="cdot" style="background:${getCollectionColor(c)}"></span>${esc(c)}</span>`),
-    ...(state.tags[p.id] ?? []).map((t) => `<span class="chip custom">#${esc(t)}</span>`),
+    ...(state.tags[p.id] ?? []).map((t) => {
+      const { background, color } = tintedChipStyle(getTagColor(state, t));
+      return `<span class="chip custom" style="background:${background};color:${color}">#${esc(t)}</span>`;
+    }),
   ].join("");
 
   const profileHref = esc(igProfile(p.owner_username, p.owner_url));
@@ -35,14 +39,13 @@ export function cardHtml(p: CatalogPost, state: UserState): string {
       <button class="star-btn ${state.fav[p.id] ? "on" : ""}" data-fav="${esc(p.id)}"><svg viewBox="0 0 24 24"><path d="M12 17.3 6.16 20.5l1.12-6.5L2.5 9.4l6.54-.95L12 2.5l2.96 5.95 6.54.95-4.78 4.6 1.12 6.5z"/></svg></button>
     </div>
     <div class="owner">
-      <span class="ava">${initial(p.owner_name, p.owner_username)}</span>
       <div style="overflow:hidden">
         <a href="${profileHref}" target="_blank" rel="noopener noreferrer" data-noopen>${esc(p.owner_name || p.owner_username || "Unknown")}</a>
         ${p.owner_username ? `<div class="uname">@${esc(p.owner_username)}</div>` : ""}
       </div>
     </div>
     ${cap
-      ? `<div class="caplabel">Caption</div><div class="cap">${cap}</div>`
+      ? `<div class="cap">${cap}</div>`
       : `<div class="cap empty">No caption on this post.</div>`
     }
     ${chips ? `<div class="chips">${chips}</div>` : ""}

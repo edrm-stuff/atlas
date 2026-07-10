@@ -1,13 +1,15 @@
 import type { Catalog, UserState, ViewState } from "../types.js";
 import { saveUserState, replacePosts, putPosts, putCollections, deletePosts } from "../storage/db.js";
 import { openModal, closeModal, getModalId } from "./modal.js";
-import { renderNav, renderGrid, renderStats, extendGrid } from "./render.js";
+import { renderNav, renderGrid, renderStats, extendGrid, updateCardInGrid } from "./render.js";
 import { normalizeImportedData, parseImportedText } from "../import/index.js";
 import { mergeCatalog } from "../import/merge.js";
 import { paintCollectionColors } from "./card.js";
+import { getTagColor, DEFAULT_COLOR, createTag } from "../tagColors.js";
+import { openColorPopover } from "./colorPopover.js";
 
 function emptyState(): UserState {
-  return { fav: {}, done: {}, notes: {}, tags: {}, customTags: [], trash: {}, purged: {} };
+  return { fav: {}, done: {}, notes: {}, tags: {}, customTags: [], tagColors: {}, trash: {}, purged: {} };
 }
 
 let _catalog: Catalog = { posts: [], collections: [] };
@@ -36,9 +38,9 @@ function queueSave(): void {
   if (_saveTimer) clearTimeout(_saveTimer);
   _saveTimer = setTimeout(async () => {
     await saveUserState(_state);
-    if (msg) msg.textContent = "all changes saved";
+    if (msg) msg.textContent = "All changes saved";
   }, 350);
-  if (msg) msg.textContent = "saving…";
+  if (msg) msg.textContent = "Saving…";
 }
 
 function setSavemsg(text: string): void {
@@ -50,6 +52,9 @@ export function wireEvents(): void {
   // Delegated click handler
   document.addEventListener("click", async (e) => {
     const t = e.target as HTMLElement;
+
+    // Tutorial link — page not built yet
+    if (t.closest("#tutorial-link")) { e.preventDefault(); return; }
 
     // Smart tag / AI tag click → filter
     const stagEl = t.closest("[data-stag]") as HTMLElement | null;
@@ -64,9 +69,26 @@ export function wireEvents(): void {
       return;
     }
 
+    // Tag color dot → open color popover (must not switch scope)
+    const colorDotEl = t.closest("[data-colordot]") as HTMLElement | null;
+    if (colorDotEl) {
+      e.stopPropagation();
+      const tag = colorDotEl.dataset.colordot!;
+      const current = getTagColor(_state, tag);
+      openColorPopover(colorDotEl, current, DEFAULT_COLOR, (hex) => {
+        _state.tagColors[tag] = hex;
+        queueSave();
+        renderNav(_catalog, _state, _view);
+        renderGrid(_catalog, _state, _view);
+        const modalId = getModalId();
+        if (modalId) openModal(modalId, _catalog, _state);
+      });
+      return;
+    }
+
     // Nav scope
     const scopeBtn = t.closest("[data-scope]") as HTMLElement | null;
-    if (scopeBtn && !t.closest("[data-deltag]")) {
+    if (scopeBtn && !t.closest("[data-deltag]") && !t.closest("[data-colordot]")) {
       _view.scope = scopeBtn.dataset.scope!;
       renderNav(_catalog, _state, _view);
       renderGrid(_catalog, _state, _view);
@@ -88,36 +110,31 @@ export function wireEvents(): void {
       return;
     }
 
-    // Fav toggle — update single card, not full grid
+    // Fav toggle — update every matching star button (card grid + modal), not a full re-render
     const favEl = t.closest("[data-fav]") as HTMLElement | null;
     if (favEl) {
       const id = favEl.dataset.fav!;
       _state.fav[id] = !_state.fav[id];
       queueSave();
-      const card = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`) as HTMLElement | null;
-      if (card) {
-        const btn = card.querySelector("[data-fav]");
-        btn?.classList.toggle("on", !!_state.fav[id]);
-        const svg = btn?.querySelector("svg path");
+      document.querySelectorAll(`[data-fav="${CSS.escape(id)}"]`).forEach((btn) => {
+        btn.classList.toggle("on", !!_state.fav[id]);
+        const svg = btn.querySelector("svg path");
         if (svg) (svg as HTMLElement).style.fill = _state.fav[id] ? "var(--accent)" : "";
-      }
+      });
       renderNav(_catalog, _state, _view);
       renderStats(_catalog, _state);
       return;
     }
 
-    // Done/watched toggle — update single card
+    // Done/watched toggle — update every matching button (card grid + modal)
     const doneEl = t.closest("[data-done]") as HTMLElement | null;
     if (doneEl) {
       const id = doneEl.dataset.done!;
       _state.done[id] = !_state.done[id];
       queueSave();
       const card = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`) as HTMLElement | null;
-      if (card) {
-        card.classList.toggle("done", !!_state.done[id]);
-        const btn = card.querySelector("[data-done]");
-        btn?.classList.toggle("on", !!_state.done[id]);
-      }
+      card?.classList.toggle("done", !!_state.done[id]);
+      document.querySelectorAll(`[data-done="${CSS.escape(id)}"]`).forEach((btn) => btn.classList.toggle("on", !!_state.done[id]));
       renderNav(_catalog, _state, _view);
       renderStats(_catalog, _state);
       return;
@@ -129,6 +146,7 @@ export function wireEvents(): void {
       const id = discardEl.dataset.discard!;
       _state.trash[id] = true;
       queueSave();
+      if (getModalId() === id) closeModal();
       rerender();
       return;
     }
@@ -149,26 +167,18 @@ export function wireEvents(): void {
     // Open modal (skip if the click originated on an element that opts out, e.g. the owner link)
     if (t.closest("[data-noopen]")) return;
     const openEl = t.closest("[data-open]") as HTMLElement | null;
-    if (openEl) { openModal(openEl.dataset.open!, _catalog, _state); return; }
-
-    // Close modal
-    if (t.closest("[data-close]") || t.id === "overlay") { closeModal(); return; }
-
-    // Toggle tag in modal
-    const toggleTagEl = t.closest("[data-toggletag]") as HTMLElement | null;
-    if (toggleTagEl) {
-      const modalId = getModalId();
-      if (!modalId) return;
-      const tag = toggleTagEl.dataset.toggletag!;
-      const arr = _state.tags[modalId] ?? (_state.tags[modalId] = []);
-      const i = arr.indexOf(tag);
-      if (i >= 0) arr.splice(i, 1); else arr.push(tag);
-      queueSave();
-      toggleTagEl.classList.toggle("sel");
-      renderNav(_catalog, _state, _view);
-      renderGrid(_catalog, _state, _view);
+    if (openEl) {
+      const id = openEl.dataset.open!;
+      openModal(id, _catalog, _state, () => {
+        queueSave();
+        renderNav(_catalog, _state, _view);
+        updateCardInGrid(id, _state);
+      });
       return;
     }
+
+    // Close modal
+    if (t.id === "overlay") { closeModal(); return; }
 
     // Import
     if (t.id === "import-btn") { document.getElementById("import-file")?.click(); return; }
@@ -221,9 +231,7 @@ export function wireEvents(): void {
   // Add tag
   const addTagFn = () => {
     const inp = document.getElementById("newtag") as HTMLInputElement;
-    const v = inp.value.trim().replace(/^#/, "");
-    if (!v) return;
-    if (!_state.customTags.includes(v)) _state.customTags.push(v);
+    if (!createTag(_state, inp.value)) return;
     inp.value = "";
     queueSave();
     renderNav(_catalog, _state, _view);
@@ -231,8 +239,10 @@ export function wireEvents(): void {
   document.getElementById("addtag-btn")?.addEventListener("click", addTagFn);
   document.getElementById("newtag")?.addEventListener("keydown", (e) => { if (e.key === "Enter") addTagFn(); });
 
-  // ESC key
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeModal(); } });
+  // ESC key (the tag combobox dropdown handles its own Escape and stops it there)
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !document.querySelector(".tagcombo-drop")) closeModal();
+  });
 
   // Lazy grid extension
   const sentinel = document.getElementById("grid-sentinel");
@@ -249,7 +259,7 @@ export function wireEvents(): void {
 }
 
 async function handleImport(file: File): Promise<void> {
-  setSavemsg("importing…");
+  setSavemsg("Importing…");
   try {
     const text = await file.text();
     const raw = parseImportedText(text, file.name);
@@ -260,10 +270,10 @@ async function handleImport(file: File): Promise<void> {
     await putPosts(_catalog.posts);
     await putCollections(_catalog.collections);
     rerender();
-    setSavemsg(`imported ${added} new · refreshed ${updated} existing`);
+    setSavemsg(`Imported ${added} new · refreshed ${updated} existing`);
     if (warning) alert(warning);
   } catch (err) {
-    setSavemsg("import failed");
+    setSavemsg("Import failed");
     alert((err as Error).message ?? "Import failed.");
   } finally {
     const input = document.getElementById("import-file") as HTMLInputElement | null;
@@ -281,7 +291,7 @@ async function handleReset(): Promise<void> {
   await putCollections([]);
   await saveUserState(_state);
   rerender();
-  setSavemsg("catalog reset");
+  setSavemsg("Catalog reset");
 }
 
 async function handleEmptyTrash(): Promise<void> {
@@ -309,7 +319,7 @@ async function handleEmptyTrash(): Promise<void> {
   queueSave();
   if (_view.scope === "trash") _view.scope = "all";
   rerender();
-  setSavemsg(`emptied ${ids.length} item${ids.length === 1 ? "" : "s"} from trash`);
+  setSavemsg(`Emptied ${ids.length} item${ids.length === 1 ? "" : "s"} from trash`);
 }
 
 function resetViewControls(): void {

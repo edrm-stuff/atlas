@@ -2,6 +2,7 @@ import type { Catalog, UserState, ViewState } from "../types.js";
 import { esc } from "../utils.js";
 import { currentSet, computeCounts } from "../filter.js";
 import { cardHtml, paintCollectionColors } from "./card.js";
+import { getTagColor } from "../tagColors.js";
 
 const PAGE_SIZE = 100;
 let _renderedCount = 0;
@@ -30,7 +31,7 @@ export function renderStats(catalog: Catalog, state: UserState): void {
 
 function navBtn(scope: string, label: string, count: number, dot?: string, delTag?: string): string {
   const active = scope === _currentView?.scope ? " active" : "";
-  const dotHtml = dot ? `<span class="dot" style="background:${dot}"></span>` : "";
+  const dotHtml = dot ? `<span class="dot" data-colordot="${esc(delTag ?? "")}" style="background:${dot}"></span>` : "";
   const del = delTag ? `<span class="tagchip-del" data-deltag="${esc(delTag)}" title="Delete tag">✕</span>` : "";
   return `<button class="navbtn${active}" data-scope="${esc(scope)}"><span class="nav-left">${dotHtml}<span>${esc(label)}</span>${del}</span><span class="badge">${count}</span></button>`;
 }
@@ -47,13 +48,13 @@ export function renderNav(catalog: Catalog, state: UserState, view: ViewState): 
     navBtn("all", "All Saves", counts.all) +
     navBtn("fav", "★ Favorites", counts.fav) +
     navBtn("done", "Watched", counts.done) +
-    navBtn("uncat", "Unfiled", counts.uncat);
+    navBtn("uncat", "Untagged", counts.uncat);
 
   const navTags = document.getElementById("nav-tags");
   if (navTags) {
     const tags = state.customTags;
     navTags.innerHTML = tags.length
-      ? tags.map((t) => navBtn("tag:" + t, t, counts.byTag.get(t) ?? 0, "#1f5e54", t)).join("")
+      ? tags.map((t) => navBtn("tag:" + t, t, counts.byTag.get(t) ?? 0, getTagColor(state, t), t)).join("")
       : `<div style="font-size:12px;color:var(--muted);padding:4px 9px;font-style:italic">No tags yet — make one below.</div>`;
   }
 
@@ -62,7 +63,7 @@ export function renderNav(catalog: Catalog, state: UserState, view: ViewState): 
 }
 
 const TITLES: Record<string, string> = {
-  all: "All Saves", fav: "★ Favorites", done: "Watched", uncat: "Unfiled — no collection", trash: "Trash",
+  all: "All Saves", fav: "★ Favorites", done: "Watched", uncat: "Untagged — no tags yet", trash: "Trash",
 };
 
 export function renderGrid(catalog: Catalog, state: UserState, view: ViewState): void {
