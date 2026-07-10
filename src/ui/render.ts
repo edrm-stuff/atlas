@@ -1,7 +1,7 @@
 import type { Catalog, UserState, ViewState } from "../types.js";
 import { esc } from "../utils.js";
 import { currentSet, computeCounts } from "../filter.js";
-import { cardHtml, paintCollectionColors, getCollectionColor } from "./card.js";
+import { cardHtml, paintCollectionColors } from "./card.js";
 
 const PAGE_SIZE = 100;
 let _renderedCount = 0;
@@ -48,11 +48,6 @@ export function renderNav(catalog: Catalog, state: UserState, view: ViewState): 
     navBtn("fav", "★ Favorites", counts.fav) +
     navBtn("done", "Watched", counts.done) +
     navBtn("uncat", "Unfiled", counts.uncat);
-
-  const navCols = document.getElementById("nav-collections");
-  if (navCols) navCols.innerHTML = catalog.collections
-    .map((c) => navBtn("col:" + c.name, c.name, counts.byCollection.get(c.name) ?? 0, getCollectionColor(c.name)))
-    .join("");
 
   const navTags = document.getElementById("nav-tags");
   if (navTags) {
