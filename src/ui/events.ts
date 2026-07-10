@@ -252,7 +252,7 @@ async function handleImport(file: File): Promise<void> {
   try {
     const text = await file.text();
     const raw = parseImportedText(text, file.name);
-    const incoming = normalizeImportedData(raw, file.name);
+    const { catalog: incoming, warning } = normalizeImportedData(raw, file.name);
     const { catalog, added, updated } = mergeCatalog(_catalog, incoming, _state.purged);
     _catalog = catalog;
     paintCollectionColors(_catalog.collections);
@@ -260,6 +260,7 @@ async function handleImport(file: File): Promise<void> {
     await putCollections(_catalog.collections);
     rerender();
     setSavemsg(`imported ${added} new · refreshed ${updated} existing`);
+    if (warning) alert(warning);
   } catch (err) {
     setSavemsg("import failed");
     alert((err as Error).message ?? "Import failed.");
