@@ -32,6 +32,7 @@ export function cardHtml(p: CatalogPost, state: UserState): string {
     <div class="card-top">
       <span class="tagbadge ${esc(p.type)}">${esc(p.type)}</span>
       <span class="date">${fmtDate(p.timestamp)}</span>
+      <button class="star-btn ${state.fav[p.id] ? "on" : ""}" data-fav="${esc(p.id)}"><svg viewBox="0 0 24 24"><path d="M12 17.3 6.16 20.5l1.12-6.5L2.5 9.4l6.54-.95L12 2.5l2.96 5.95 6.54.95-4.78 4.6 1.12 6.5z"/></svg></button>
     </div>
     <div class="owner">
       <span class="ava">${initial(p.owner_name, p.owner_username)}</span>
@@ -46,7 +47,6 @@ export function cardHtml(p: CatalogPost, state: UserState): string {
     }
     ${chips ? `<div class="chips">${chips}</div>` : ""}
     <div class="card-actions">
-      <button class="act ${state.fav[p.id] ? "on" : ""}" data-fav="${esc(p.id)}"><svg viewBox="0 0 24 24"><path d="M12 17.3 6.16 20.5l1.12-6.5L2.5 9.4l6.54-.95L12 2.5l2.96 5.95 6.54.95-4.78 4.6 1.12 6.5z"/></svg>Star</button>
       <button class="act ${state.done[p.id] ? "on" : ""}" data-done="${esc(p.id)}"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Watched</button>
       <button class="act" data-open="${esc(p.id)}"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/></svg>View</button>
       ${trashAction}
