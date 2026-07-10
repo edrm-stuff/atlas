@@ -53,8 +53,6 @@ export function wireEvents(): void {
   document.addEventListener("click", async (e) => {
     const t = e.target as HTMLElement;
 
-    // Tutorial link — page not built yet
-    if (t.closest("#tutorial-link")) { e.preventDefault(); return; }
 
     // Smart tag / AI tag click → filter
     const stagEl = t.closest("[data-stag]") as HTMLElement | null;

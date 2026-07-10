@@ -1,11 +1,3 @@
-:root {
-  --paper: #ece5d6; --paper2: #f4efe4; --card: #f8f4ea;
-  --ink: #1c1814; --ink-soft: #4a443c; --muted: #928979;
-  --accent: #d6422a; --accent-ink: #fff7f0; --teal: #1f5e54;
-  --line: rgba(28,24,20,.16); --line-soft: rgba(28,24,20,.08);
-  --shadow: 14px 14px 0 rgba(28,24,20,.07);
-}
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-font-smoothing: antialiased; }
 body {
