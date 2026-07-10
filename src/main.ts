@@ -11,11 +11,12 @@ import "@fontsource/jetbrains-mono/700.css";
 import "./styles.css";
 
 import type { Catalog, UserState } from "./types.js";
-import { openDb, getAllPosts, getAllCollections, loadUserState } from "./storage/db.js";
+import { openDb, getAllPosts, getAllCollections, loadUserState, saveUserState } from "./storage/db.js";
 import { migrateFromLocalStorage } from "./storage/migrate.js";
 import { paintCollectionColors } from "./ui/card.js";
 import { renderStats, renderNav, renderGrid } from "./ui/render.js";
 import { init, wireEvents } from "./ui/events.js";
+import { backfillTagColors } from "./tagColors.js";
 
 async function boot(): Promise<void> {
   await openDb();
@@ -34,10 +35,11 @@ async function boot(): Promise<void> {
 
   const catalog: Catalog = { posts, collections };
   const state: UserState = (await loadUserState()) ?? {
-    fav: {}, done: {}, notes: {}, tags: {}, customTags: [], trash: {}, purged: {},
+    fav: {}, done: {}, notes: {}, tags: {}, customTags: [], tagColors: {}, trash: {}, purged: {},
   };
   state.trash ??= {};
   state.purged ??= {};
+  if (backfillTagColors(state)) await saveUserState(state);
 
   paintCollectionColors(catalog.collections);
   init(catalog, state);

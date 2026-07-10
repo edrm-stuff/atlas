@@ -1,6 +1,7 @@
 import type { Catalog, UserState } from "../types.js";
 import { normalizeCatalog } from "../import/normalize.js";
 import { putPosts, putCollections, saveUserState } from "./db.js";
+import { backfillTagColors } from "../tagColors.js";
 
 const LS_CATALOG = "saved_catalog_data_v1";
 const LS_STATE = "saved_catalog_state_v1";
@@ -18,6 +19,8 @@ export async function migrateFromLocalStorage(): Promise<boolean> {
     const stateRaw = localStorage.getItem(LS_STATE);
     if (stateRaw) {
       const state = JSON.parse(stateRaw) as UserState;
+      state.tagColors ??= {};
+      backfillTagColors(state);
       await saveUserState(state);
     }
 

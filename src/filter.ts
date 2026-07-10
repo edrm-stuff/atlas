@@ -9,7 +9,7 @@ export function currentSet(catalog: Catalog, state: UserState, view: ViewState):
     list = list.filter((p) => !state.trash[p.id]);
     if (s === "fav") list = list.filter((p) => state.fav[p.id]);
     else if (s === "done") list = list.filter((p) => state.done[p.id]);
-    else if (s === "uncat") list = list.filter((p) => !p.collections.length);
+    else if (s === "uncat") list = list.filter((p) => !(state.tags[p.id] ?? []).length);
     else if (s.startsWith("col:")) { const n = s.slice(4); list = list.filter((p) => p.collections.includes(n)); }
     else if (s.startsWith("tag:")) { const t = s.slice(4); list = list.filter((p) => (state.tags[p.id] ?? []).includes(t)); }
   }
@@ -52,7 +52,7 @@ export function computeCounts(catalog: Catalog, state: UserState): {
     all++;
     if (state.fav[p.id]) fav++;
     if (state.done[p.id]) done++;
-    if (!p.collections.length) uncat++;
+    if (!(state.tags[p.id] ?? []).length) uncat++;
     for (const c of p.collections) byCollection.set(c, (byCollection.get(c) ?? 0) + 1);
     for (const t of state.tags[p.id] ?? []) byTag.set(t, (byTag.get(t) ?? 0) + 1);
   }
