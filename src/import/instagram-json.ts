@@ -6,6 +6,13 @@ export function collectInstagramItems(value: unknown, collection: string, out: C
   if (Array.isArray(value)) { value.forEach((v) => collectInstagramItems(v, collection, out)); return; }
 
   const v = value as Record<string, unknown>;
+
+  if (Array.isArray(v.label_values)) {
+    const item = instagramItemFromLabelValues(v, collection);
+    if (item) out.push(item);
+    return;
+  }
+
   const item = instagramItemFromEntry(v, collection);
   if (item) out.push(item);
 
@@ -48,5 +55,61 @@ function instagramItemFromEntry(entry: Record<string, unknown>, collection: stri
     saved: true,
     tldr: caption.slice(0, 120) || `${type} saved from Instagram.`,
     captionTags: [],
+  };
+}
+
+function dictNameValues(dict: unknown, wantedLabel: string): string[] {
+  if (!Array.isArray(dict)) return [];
+  const out: string[] = [];
+  for (const outer of dict as Record<string, unknown>[]) {
+    const inner = outer && Array.isArray(outer.dict) ? (outer.dict as Record<string, unknown>[]) : [];
+    for (const d of inner) {
+      if (d.label === wantedLabel && typeof d.value === "string" && d.value.trim()) out.push(d.value.trim());
+    }
+  }
+  return out;
+}
+
+function instagramItemFromLabelValues(entry: Record<string, unknown>, collection: string): CatalogPost | null {
+  const labelValues = entry.label_values as Record<string, unknown>[];
+
+  let url = "";
+  let caption = "";
+  let title = "";
+  let owner_name = "";
+  let owner_username = "";
+  const hashtags: string[] = [];
+
+  for (const lv of labelValues) {
+    if (!lv || typeof lv !== "object") continue;
+    if (lv.label === "URL") {
+      const candidate = cleanUrl((lv.href ?? lv.value) as string);
+      if (isInstagramPostUrl(candidate)) url = candidate;
+    } else if (lv.label === "Caption") {
+      caption = String(lv.value ?? "");
+    } else if (lv.label === "Title") {
+      title = String(lv.value ?? "");
+    } else if (lv.title === "Owner") {
+      owner_name = dictNameValues(lv.dict, "Name")[0] ?? owner_name;
+      owner_username = dictNameValues(lv.dict, "Username")[0] ?? owner_username;
+    } else if (lv.title === "Hashtags") {
+      hashtags.push(...dictNameValues(lv.dict, "Name"));
+    }
+  }
+
+  if (!url || !isInstagramPostUrl(url)) return null;
+
+  const timestamp = Number(entry.timestamp ?? 0) || null;
+  const type = inferType(url);
+
+  return {
+    url, caption, title,
+    owner_name: owner_name || owner_username || "Unknown",
+    owner_username, owner_url: "",
+    timestamp, id: shortcodeFromUrl(url), type,
+    collections: collection ? [collection] : [],
+    saved: true,
+    tldr: caption.slice(0, 120) || `${type} saved from Instagram.`,
+    captionTags: hashtags.slice(0, 6),
   };
 }
