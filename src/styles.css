@@ -236,7 +236,13 @@ select.sort:focus { outline: none; }
 /* ---- Modal ---- */
 .overlay { position: fixed; inset: 0; background: rgba(28,24,20,.55); backdrop-filter: blur(3px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
 .overlay.show { display: flex; }
-.modal { background: var(--paper2); border: 2px solid var(--ink); box-shadow: 18px 18px 0 rgba(28,24,20,.25); max-width: 600px; width: 100%; max-height: 88vh; overflow-y: auto; }
+.modal { background: var(--paper2); border: 2px solid var(--ink); box-shadow: 18px 18px 0 rgba(28,24,20,.25); max-width: 1000px; width: 100%; max-height: 88vh; overflow: hidden; }
+.modal-split { display: flex; max-height: 88vh; }
+.modal-media { flex: 0 0 auto; width: 400px; max-width: 45vw; min-width: 326px; max-height: 88vh; overflow: hidden; border-right: 2px solid var(--ink); background: var(--card); display: flex; align-items: center; justify-content: center; }
+.modal-media iframe { max-height: 88vh !important; }
+.modal-info { flex: 1 1 auto; min-width: 0; max-height: 88vh; overflow-y: auto; }
+.embed-skeleton, .embed-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; height: 100%; min-height: 400px; width: 100%; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--muted); text-align: center; padding: 20px; }
+.embed-fallback a { color: var(--ink); font-weight: 700; }
 .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 2px solid var(--ink); position: sticky; top: 0; background: var(--paper2); }
 .modal-head .ava { width: 38px; height: 38px; font-size: 18px; }
 .mh-l { display: flex; align-items: center; gap: 11px; }
@@ -255,6 +261,13 @@ select.sort:focus { outline: none; }
 .notes:focus { outline: none; box-shadow: 4px 4px 0 var(--teal); }
 .openig { display: inline-flex; align-items: center; gap: 8px; background: var(--ink); color: var(--paper); text-decoration: none; padding: 11px 18px; font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; border: 2px solid var(--ink); }
 .openig:hover { background: var(--accent); border-color: var(--accent); }
+
+@media (max-width: 760px) {
+  .modal { max-height: 92vh; }
+  .modal-split { flex-direction: column; max-height: 92vh; overflow-y: auto; }
+  .modal-media { width: 100%; max-width: 100%; min-width: 0; max-height: 60vh; border-right: 0; border-bottom: 2px solid var(--ink); }
+  .modal-info { max-height: none; overflow-y: visible; }
+}
 
 footer { border-top: 2px solid var(--ink); padding: 16px clamp(14px,4vw,52px); font-family: "JetBrains Mono", monospace; font-size: 10.5px; color: var(--muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
 .savestate { display: inline-flex; align-items: center; gap: 6px; }
