@@ -146,7 +146,8 @@ export function wireEvents(): void {
     // Empty trash
     if (t.id === "empty-trash-btn") { await handleEmptyTrash(); return; }
 
-    // Open modal
+    // Open modal (skip if the click originated on an element that opts out, e.g. the owner link)
+    if (t.closest("[data-noopen]")) return;
     const openEl = t.closest("[data-open]") as HTMLElement | null;
     if (openEl) { openModal(openEl.dataset.open!, _catalog, _state); return; }
 

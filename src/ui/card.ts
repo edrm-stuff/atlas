@@ -28,7 +28,7 @@ export function cardHtml(p: CatalogPost, state: UserState): string {
     ? `<button class="act" data-restore="${esc(p.id)}"><svg viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 7"/></svg>Restore</button>`
     : `<button class="act" data-discard="${esc(p.id)}"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 15h10l1-15"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>Discard</button>`;
 
-  return `<div class="card${state.done[p.id] ? " done" : ""}" data-id="${esc(p.id)}">
+  return `<div class="card${state.done[p.id] ? " done" : ""}" data-id="${esc(p.id)}" data-open="${esc(p.id)}">
     <div class="card-top">
       <span class="tagbadge ${esc(p.type)}">${esc(p.type)}</span>
       <span class="date">${fmtDate(p.timestamp)}</span>
@@ -37,18 +37,17 @@ export function cardHtml(p: CatalogPost, state: UserState): string {
     <div class="owner">
       <span class="ava">${initial(p.owner_name, p.owner_username)}</span>
       <div style="overflow:hidden">
-        <a href="${profileHref}" target="_blank" rel="noopener noreferrer">${esc(p.owner_name || p.owner_username || "Unknown")}</a>
+        <a href="${profileHref}" target="_blank" rel="noopener noreferrer" data-noopen>${esc(p.owner_name || p.owner_username || "Unknown")}</a>
         ${p.owner_username ? `<div class="uname">@${esc(p.owner_username)}</div>` : ""}
       </div>
     </div>
     ${cap
-      ? `<div class="caplabel">Caption</div><div class="cap" data-open="${esc(p.id)}">${cap}</div>`
-      : `<div class="cap empty" data-open="${esc(p.id)}">No caption on this post.</div>`
+      ? `<div class="caplabel">Caption</div><div class="cap">${cap}</div>`
+      : `<div class="cap empty">No caption on this post.</div>`
     }
     ${chips ? `<div class="chips">${chips}</div>` : ""}
     <div class="card-actions">
       <button class="act ${state.done[p.id] ? "on" : ""}" data-done="${esc(p.id)}"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Watched</button>
-      <button class="act" data-open="${esc(p.id)}"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/></svg>View</button>
       ${trashAction}
     </div>
   </div>`;

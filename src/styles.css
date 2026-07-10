@@ -168,7 +168,7 @@ select.sort:focus { outline: none; }
 }
 .card {
   background: var(--card); border: 2px solid var(--ink); display: flex; flex-direction: column;
-  position: relative; transition: transform .12s, box-shadow .12s;
+  position: relative; transition: transform .12s, box-shadow .12s; cursor: pointer;
 }
 .card:hover { transform: translate(-3px,-3px); box-shadow: 6px 6px 0 var(--ink); }
 .card.done { opacity: .52; }
