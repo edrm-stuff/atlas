@@ -1,19 +1,20 @@
 import type { Catalog, UserState, ViewState } from "../types.js";
-import { saveUserState, replacePosts, putCollections } from "../storage/db.js";
+import { saveUserState, replacePosts, putPosts, putCollections, deletePosts } from "../storage/db.js";
 import { openModal, closeModal, getModalId } from "./modal.js";
-import { openSettings, closeSettings, loadAiSettings } from "./settings.js";
-import { renderNav, renderGrid, renderStats, extendGrid, updateCardInGrid } from "./render.js";
+import { renderNav, renderGrid, renderStats, extendGrid } from "./render.js";
 import { normalizeImportedData, parseImportedText } from "../import/index.js";
-import type { AiProvider } from "../ai/provider.js";
-import { generateBatch, cancelGeneration } from "../ai/generate.js";
+import { mergeCatalog } from "../import/merge.js";
 import { paintCollectionColors } from "./card.js";
 
+function emptyState(): UserState {
+  return { fav: {}, done: {}, notes: {}, tags: {}, customTags: [], trash: {}, purged: {} };
+}
+
 let _catalog: Catalog = { posts: [], collections: [] };
-let _state: UserState = { fav: {}, done: {}, notes: {}, tags: {}, customTags: [] };
+let _state: UserState = emptyState();
 let _view: ViewState = { scope: "all", type: "all", q: "", sort: "new" };
 let _saveTimer: ReturnType<typeof setTimeout> | null = null;
 let _searchTimer: ReturnType<typeof setTimeout> | null = null;
-let _generating = false;
 
 export function init(catalog: Catalog, state: UserState): void {
   _catalog = catalog;
@@ -122,6 +123,29 @@ export function wireEvents(): void {
       return;
     }
 
+    // Discard → trash
+    const discardEl = t.closest("[data-discard]") as HTMLElement | null;
+    if (discardEl) {
+      const id = discardEl.dataset.discard!;
+      _state.trash[id] = true;
+      queueSave();
+      rerender();
+      return;
+    }
+
+    // Restore from trash
+    const restoreEl = t.closest("[data-restore]") as HTMLElement | null;
+    if (restoreEl) {
+      const id = restoreEl.dataset.restore!;
+      delete _state.trash[id];
+      queueSave();
+      rerender();
+      return;
+    }
+
+    // Empty trash
+    if (t.id === "empty-trash-btn") { await handleEmptyTrash(); return; }
+
     // Open modal
     const openEl = t.closest("[data-open]") as HTMLElement | null;
     if (openEl) { openModal(openEl.dataset.open!, _catalog, _state); return; }
@@ -145,27 +169,11 @@ export function wireEvents(): void {
       return;
     }
 
-    // Settings close
-    if (t.closest("[data-close-settings]") || t.id === "settings-overlay") { closeSettings(); return; }
-
-    // Settings open
-    if (t.id === "settings-btn") { openSettings(); return; }
-
     // Import
     if (t.id === "import-btn") { document.getElementById("import-file")?.click(); return; }
 
     // Reset
     if (t.id === "reset-btn") { await handleReset(); return; }
-
-    // AI button
-    if (t.id === "ai-btn") { await handleAiBatch("all-missing"); return; }
-
-    // Generate single from modal
-    const genSingleEl = t.closest("[data-generate-single]") as HTMLElement | null;
-    if (genSingleEl) { await handleAiBatch("single", genSingleEl.dataset.generateSingle); return; }
-
-    // Cancel AI
-    if (t.id === "ai-cancel-btn") { cancelGeneration(); return; }
   });
 
   // Input handlers
@@ -223,7 +231,7 @@ export function wireEvents(): void {
   document.getElementById("newtag")?.addEventListener("keydown", (e) => { if (e.key === "Enter") addTagFn(); });
 
   // ESC key
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeModal(); closeSettings(); } });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeModal(); } });
 
   // Lazy grid extension
   const sentinel = document.getElementById("grid-sentinel");
@@ -237,28 +245,21 @@ export function wireEvents(): void {
   document.getElementById("overlay")?.addEventListener("click", (e) => {
     if ((e.target as HTMLElement).id === "overlay") closeModal();
   });
-  document.getElementById("settings-overlay")?.addEventListener("click", (e) => {
-    if ((e.target as HTMLElement).id === "settings-overlay") closeSettings();
-  });
 }
 
 async function handleImport(file: File): Promise<void> {
-  if (_catalog.posts.length && !confirm("Importing replaces the catalog stored in this browser. Continue?")) return;
   setSavemsg("importing…");
   try {
     const text = await file.text();
     const raw = parseImportedText(text, file.name);
-    const catalog = normalizeImportedData(raw, file.name);
+    const incoming = normalizeImportedData(raw, file.name);
+    const { catalog, added, updated } = mergeCatalog(_catalog, incoming, _state.purged);
     _catalog = catalog;
-    _state = { fav: {}, done: {}, notes: {}, tags: {}, customTags: [] };
-    _view = { scope: "all", type: "all", q: "", sort: "new" };
-    resetViewControls();
     paintCollectionColors(_catalog.collections);
-    await replacePosts(_catalog.posts);
+    await putPosts(_catalog.posts);
     await putCollections(_catalog.collections);
-    await saveUserState(_state);
     rerender();
-    setSavemsg(`imported ${_catalog.posts.length} items`);
+    setSavemsg(`imported ${added} new · refreshed ${updated} existing`);
   } catch (err) {
     setSavemsg("import failed");
     alert((err as Error).message ?? "Import failed.");
@@ -271,7 +272,7 @@ async function handleImport(file: File): Promise<void> {
 async function handleReset(): Promise<void> {
   if (!confirm("Reset catalog data in this browser? This removes imported items, notes, tags, favorites, and watched status.")) return;
   _catalog = { posts: [], collections: [] };
-  _state = { fav: {}, done: {}, notes: {}, tags: {}, customTags: [] };
+  _state = emptyState();
   _view = { scope: "all", type: "all", q: "", sort: "new" };
   resetViewControls();
   await replacePosts([]);
@@ -281,43 +282,32 @@ async function handleReset(): Promise<void> {
   setSavemsg("catalog reset");
 }
 
-async function handleAiBatch(mode: "all-missing" | "single", singleId?: string): Promise<void> {
-  if (_generating) return;
-  const settings = loadAiSettings();
-  if (!settings) { openSettings(); return; }
+async function handleEmptyTrash(): Promise<void> {
+  const ids = Object.keys(_state.trash).filter((id) => _state.trash[id]);
+  if (!ids.length) return;
+  if (!confirm(`Permanently delete ${ids.length} item${ids.length === 1 ? "" : "s"} from Trash? This cannot be undone.`)) return;
 
-  let posts = _catalog.posts;
-  if (mode === "all-missing") posts = posts.filter((p) => !p.ai || p.ai.status !== "done");
-  else if (mode === "single" && singleId) posts = _catalog.posts.filter((p) => p.id === singleId);
+  ids.forEach((id) => { _state.purged[id] = true; delete _state.trash[id]; delete _state.fav[id]; delete _state.done[id]; delete _state.notes[id]; delete _state.tags[id]; });
+  _catalog.posts = _catalog.posts.filter((p) => !ids.includes(p.id));
 
-  if (!posts.length) { alert("No posts need AI summaries."); return; }
+  const names: string[] = [];
+  _catalog.posts.forEach((p) => p.collections.forEach((n) => { if (n && !names.includes(n)) names.push(n); }));
+  _catalog.collections = names.map((name) => {
+    const inCollection = _catalog.posts.filter((p) => p.collections.includes(name));
+    const original = _catalog.collections.find((c) => c.name === name);
+    return {
+      name,
+      count: inCollection.length,
+      updated: original?.updated ?? (Math.max(0, ...inCollection.map((p) => p.timestamp ?? 0)) || null),
+    };
+  });
 
-  const provider: AiProvider = settings.provider === "anthropic"
-    ? new (await import("../ai/anthropic.js")).AnthropicProvider(settings.apiKey, settings.model)
-    : new (await import("../ai/openai.js")).OpenAiProvider(settings.apiKey, settings.model);
-
-  _generating = true;
-  showProgressBar(true);
-
-  await generateBatch(
-    posts,
-    provider,
-    settings.model,
-    (progress) => {
-      updateProgressBar(progress.current, progress.total, progress.cancelled);
-      if (progress.done || progress.cancelled) {
-        _generating = false;
-        setTimeout(() => showProgressBar(false), 2000);
-      }
-    },
-    (updated) => {
-      // Patch catalog in-memory
-      const idx = _catalog.posts.findIndex((p) => p.id === updated.id);
-      if (idx >= 0) _catalog.posts[idx] = updated;
-      // Update card if visible
-      updateCardInGrid(updated.id, _state);
-    }
-  );
+  await deletePosts(ids);
+  await putCollections(_catalog.collections);
+  queueSave();
+  if (_view.scope === "trash") _view.scope = "all";
+  rerender();
+  setSavemsg(`emptied ${ids.length} item${ids.length === 1 ? "" : "s"} from trash`);
 }
 
 function resetViewControls(): void {
@@ -329,17 +319,4 @@ function resetViewControls(): void {
     x.classList.toggle("active", (x as HTMLElement).dataset.type === "all")
   );
   closeModal();
-}
-
-function showProgressBar(show: boolean): void {
-  const bar = document.getElementById("ai-progress-bar");
-  if (bar) bar.style.display = show ? "block" : "none";
-}
-
-function updateProgressBar(current: number, total: number, cancelled: boolean): void {
-  const inner = document.getElementById("ai-progress-inner");
-  if (!inner) return;
-  const pct = total ? Math.round((current / total) * 100) : 0;
-  inner.style.width = pct + "%";
-  inner.textContent = cancelled ? "Cancelled" : `${current} / ${total}`;
 }

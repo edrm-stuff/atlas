@@ -18,7 +18,6 @@ export function openModal(id: string, catalog: Catalog, state: UserState): void 
     .join("");
 
   const profileHref = esc(igProfile(p.owner_username, p.owner_url));
-  const isAiGenerated = p.ai?.status === "done";
 
   document.getElementById("modal")!.innerHTML = `
     <div class="modal-head">
@@ -34,13 +33,8 @@ export function openModal(id: string, catalog: Catalog, state: UserState): void 
     <div class="modal-body">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span class="tagbadge ${esc(p.type)}">${esc(p.type)}</span>
-        ${(p.captionTags ?? []).map((t) => `<span class="stag" data-stag="${esc(t)}" style="font-size:11px">#${esc(t)}</span>`).join("")}
-        ${(p.suggestedTags ?? []).map((t) => `<span class="stag ai-tag" data-stag="${esc(t)}" style="font-size:11px" title="AI suggested">✨${esc(t)}</span>`).join("")}
         <span class="date" style="margin-left:auto">saved ${fmtDate(p.timestamp)}</span>
       </div>
-      <div class="mlabel">${isAiGenerated ? "✨ AI TL;DR" : "TL;DR"}</div>
-      <div style="font-size:15px;line-height:1.55;color:var(--ink);font-weight:500">${esc(p.tldr ?? "")}</div>
-      ${p.ai?.status === "error" ? `<div style="font-size:12px;color:var(--accent);margin-top:4px">AI error: ${esc(p.ai.error ?? "")}</div>` : ""}
       <div class="mlabel">Full caption</div>
       <div class="full-cap">${p.caption ? esc(p.caption) : '<em style="color:var(--muted)">No caption.</em>'}</div>
       ${p.collections.length
@@ -53,7 +47,6 @@ export function openModal(id: string, catalog: Catalog, state: UserState): void 
       <textarea class="notes" id="notebox" placeholder="Why did you save this? What do you want to do with it?">${esc(state.notes[id] ?? "")}</textarea>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px">
         <a class="openig" href="${esc(safeHref(p.url))}" target="_blank" rel="noopener noreferrer">Open on Instagram ↗</a>
-        <button class="toolbtn ghost" data-generate-single="${esc(id)}" style="font-size:11px">✨ Generate AI summary</button>
       </div>
     </div>`;
 

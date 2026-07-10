@@ -4,11 +4,15 @@ export function currentSet(catalog: Catalog, state: UserState, view: ViewState):
   let list = catalog.posts.slice();
   const s = view.scope;
 
-  if (s === "fav") list = list.filter((p) => state.fav[p.id]);
-  else if (s === "done") list = list.filter((p) => state.done[p.id]);
-  else if (s === "uncat") list = list.filter((p) => !p.collections.length);
-  else if (s.startsWith("col:")) { const n = s.slice(4); list = list.filter((p) => p.collections.includes(n)); }
-  else if (s.startsWith("tag:")) { const t = s.slice(4); list = list.filter((p) => (state.tags[p.id] ?? []).includes(t)); }
+  if (s === "trash") list = list.filter((p) => state.trash[p.id]);
+  else {
+    list = list.filter((p) => !state.trash[p.id]);
+    if (s === "fav") list = list.filter((p) => state.fav[p.id]);
+    else if (s === "done") list = list.filter((p) => state.done[p.id]);
+    else if (s === "uncat") list = list.filter((p) => !p.collections.length);
+    else if (s.startsWith("col:")) { const n = s.slice(4); list = list.filter((p) => p.collections.includes(n)); }
+    else if (s.startsWith("tag:")) { const t = s.slice(4); list = list.filter((p) => (state.tags[p.id] ?? []).includes(t)); }
+  }
 
   if (view.type !== "all") list = list.filter((p) => p.type === view.type);
 
@@ -19,9 +23,7 @@ export function currentSet(catalog: Catalog, state: UserState, view: ViewState):
         (p.caption ?? "").toLowerCase().includes(q) ||
         (p.owner_username ?? "").toLowerCase().includes(q) ||
         (p.owner_name ?? "").toLowerCase().includes(q) ||
-        (p.tldr ?? "").toLowerCase().includes(q) ||
-        (p.captionTags ?? []).some((t) => t.toLowerCase().includes(q)) ||
-        (p.suggestedTags ?? []).some((t) => t.toLowerCase().includes(q))
+        (p.captionTags ?? []).some((t) => t.toLowerCase().includes(q))
     );
   }
 
@@ -37,14 +39,17 @@ export function computeCounts(catalog: Catalog, state: UserState): {
   fav: number;
   done: number;
   uncat: number;
+  trash: number;
   byCollection: Map<string, number>;
   byTag: Map<string, number>;
 } {
-  let fav = 0, done = 0, uncat = 0;
+  let all = 0, fav = 0, done = 0, uncat = 0, trash = 0;
   const byCollection = new Map<string, number>();
   const byTag = new Map<string, number>();
 
   for (const p of catalog.posts) {
+    if (state.trash[p.id]) { trash++; continue; }
+    all++;
     if (state.fav[p.id]) fav++;
     if (state.done[p.id]) done++;
     if (!p.collections.length) uncat++;
@@ -52,5 +57,5 @@ export function computeCounts(catalog: Catalog, state: UserState): {
     for (const t of state.tags[p.id] ?? []) byTag.set(t, (byTag.get(t) ?? 0) + 1);
   }
 
-  return { all: catalog.posts.length, fav, done, uncat, byCollection, byTag };
+  return { all, fav, done, uncat, trash, byCollection, byTag };
 }

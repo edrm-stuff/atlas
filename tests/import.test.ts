@@ -65,6 +65,44 @@ describe("Catalog JSON import (legacy format)", () => {
   });
 });
 
+describe("Meta JSON import (label_values format)", () => {
+  it("parses the newer label_values export and returns only the valid items", () => {
+    const json = fix("meta_export_labelvalues.json");
+    const catalog = normalizeImportedData(parseImportedText(json, "saved_posts.json"), "saved_posts.json");
+    expect(catalog.posts).toHaveLength(2);
+  });
+
+  it("extracts url, id, caption, owner, timestamp, type, and hashtags", () => {
+    const json = fix("meta_export_labelvalues.json");
+    const catalog = normalizeImportedData(parseImportedText(json, "saved_posts.json"), "saved_posts.json");
+    const post = catalog.posts.find((p) => p.id === "LBLV001");
+    expect(post).toBeDefined();
+    expect(post?.url).toBe("https://www.instagram.com/reel/LBLV001/");
+    expect(post?.caption).toBe("Great tips on cooking #cooking #tips");
+    expect(post?.owner_name).toBe("Chef Anna");
+    expect(post?.owner_username).toBe("chefanna");
+    expect(post?.timestamp).toBe(1700000000);
+    expect(post?.type).toBe("reel");
+    expect(post?.captionTags).toEqual(expect.arrayContaining(["cooking", "tips"]));
+  });
+
+  it("handles a caption-less item without producing a degenerate name", () => {
+    const json = fix("meta_export_labelvalues.json");
+    const catalog = normalizeImportedData(parseImportedText(json, "saved_posts.json"), "saved_posts.json");
+    const post = catalog.posts.find((p) => p.id === "LBLV002");
+    expect(post).toBeDefined();
+    expect(post?.caption).toBe("");
+    expect(post?.owner_name).toBe("Design Co");
+    expect(post?.type).toBe("post");
+  });
+
+  it("never emits a degenerate 'Instagram save' item", () => {
+    const json = fix("meta_export_labelvalues.json");
+    const catalog = normalizeImportedData(parseImportedText(json, "saved_posts.json"), "saved_posts.json");
+    expect(catalog.posts.every((p) => p.owner_name !== "Instagram save")).toBe(true);
+  });
+});
+
 describe("normalizeCatalog deduplication", () => {
   it("merges duplicate posts by id", () => {
     const catalog = normalizeCatalog({

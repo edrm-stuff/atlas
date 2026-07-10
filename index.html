@@ -31,6 +31,8 @@
       <input id="newtag" type="text" placeholder="new tag…" maxlength="22">
       <button id="addtag-btn" title="Create tag">+</button>
     </div>
+    <div class="sec-title">Trash</div>
+    <div id="nav-trash"></div>
   </aside>
 
   <main>
@@ -52,14 +54,6 @@
         </select>
       </div>
       <div class="toolbar-right">
-        <button class="toolbtn" id="ai-btn" type="button" title="Generate AI summaries">
-          <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 0 2h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1 0-2h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/></svg>
-          AI
-        </button>
-        <button class="toolbtn" id="settings-btn" type="button" title="Settings">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Settings
-        </button>
         <button class="toolbtn" id="import-btn" type="button" title="Import data">
           <svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>
           Import
@@ -70,9 +64,6 @@
         </button>
       </div>
       <input class="fileinput" id="import-file" type="file" accept=".json,.html,application/json,text/html">
-    </div>
-    <div id="ai-progress-bar" style="display:none" class="ai-progress-bar">
-      <div id="ai-progress-inner" class="ai-progress-inner"></div>
     </div>
     <div class="crumb"><h2 id="crumb-title">All Saves</h2><span class="count" id="crumb-count"></span></div>
     <div class="grid" id="grid"></div>
@@ -87,10 +78,6 @@
 
 <div class="overlay" id="overlay">
   <div class="modal" id="modal"></div>
-</div>
-
-<div class="overlay" id="settings-overlay">
-  <div class="modal" id="settings-modal"></div>
 </div>
 
 <script type="module" src="/src/main.ts"></script>

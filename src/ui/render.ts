@@ -8,9 +8,10 @@ let _renderedCount = 0;
 let _currentList: ReturnType<typeof currentSet> = [];
 
 export function renderStats(catalog: Catalog, state: UserState): void {
-  const total = catalog.posts.length;
-  const reels = catalog.posts.filter((p) => p.type === "reel").length;
-  const creators = new Set(catalog.posts.map((p) => p.owner_username || p.owner_name)).size;
+  const active = catalog.posts.filter((p) => !state.trash[p.id]);
+  const total = active.length;
+  const reels = active.filter((p) => p.type === "reel").length;
+  const creators = new Set(active.map((p) => p.owner_username || p.owner_name)).size;
   const fav = Object.values(state.fav).filter(Boolean).length;
   const done = Object.values(state.done).filter(Boolean).length;
 
@@ -60,10 +61,13 @@ export function renderNav(catalog: Catalog, state: UserState, view: ViewState): 
       ? tags.map((t) => navBtn("tag:" + t, t, counts.byTag.get(t) ?? 0, "#1f5e54", t)).join("")
       : `<div style="font-size:12px;color:var(--muted);padding:4px 9px;font-style:italic">No tags yet — make one below.</div>`;
   }
+
+  const navTrash = document.getElementById("nav-trash");
+  if (navTrash) navTrash.innerHTML = navBtn("trash", "Trash", counts.trash);
 }
 
 const TITLES: Record<string, string> = {
-  all: "All Saves", fav: "★ Favorites", done: "Watched", uncat: "Unfiled — no collection",
+  all: "All Saves", fav: "★ Favorites", done: "Watched", uncat: "Unfiled — no collection", trash: "Trash",
 };
 
 export function renderGrid(catalog: Catalog, state: UserState, view: ViewState): void {
@@ -79,6 +83,20 @@ export function renderGrid(catalog: Catalog, state: UserState, view: ViewState):
   if (titleEl) titleEl.textContent = title;
   const countEl = document.getElementById("crumb-count");
   if (countEl) countEl.textContent = `[${_currentList.length}${_currentList.length === 1 ? " item]" : " items]"}`;
+
+  const crumbEl = document.querySelector(".crumb");
+  let emptyBtn = document.getElementById("empty-trash-btn");
+  if (view.scope === "trash" && _currentList.length) {
+    if (!emptyBtn) {
+      emptyBtn = document.createElement("button");
+      emptyBtn.id = "empty-trash-btn";
+      emptyBtn.className = "toolbtn ghost";
+      emptyBtn.textContent = "Empty Trash";
+      crumbEl?.appendChild(emptyBtn);
+    }
+  } else if (emptyBtn) {
+    emptyBtn.remove();
+  }
 
   const g = document.getElementById("grid");
   if (!g) return;

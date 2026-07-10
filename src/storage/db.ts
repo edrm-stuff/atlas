@@ -49,6 +49,13 @@ export async function putPosts(posts: CatalogPost[]): Promise<void> {
   await Promise.all(posts.map((p) => wrap(s.put(p))));
 }
 
+export async function deletePosts(ids: string[]): Promise<void> {
+  const db = await openDb();
+  const t = tx(db, ["posts"], "readwrite");
+  const s = store(t, "posts");
+  await Promise.all(ids.map((id) => wrap(s.delete(id))));
+}
+
 export async function replacePosts(posts: CatalogPost[]): Promise<void> {
   const db = await openDb();
   const t = tx(db, ["posts"], "readwrite");

@@ -42,6 +42,8 @@ export interface UserState {
   notes: Record<string, string>;
   tags: Record<string, string[]>;
   customTags: string[];
+  trash: Record<string, boolean>;
+  purged: Record<string, boolean>;
 }
 
 export interface ViewState {
