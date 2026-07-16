@@ -1,5 +1,19 @@
 import type { Catalog, CatalogPost, Collection } from "../types.js";
 
+export function rebuildCollections(posts: CatalogPost[], prior: Collection[]): Collection[] {
+  const names: string[] = [];
+  posts.forEach((p) => p.collections.forEach((n) => { if (n && !names.includes(n)) names.push(n); }));
+  return names.map((name) => {
+    const inCollection = posts.filter((p) => p.collections.includes(name));
+    const original = prior.find((c) => c.name === name);
+    return {
+      name,
+      count: inCollection.length,
+      updated: original?.updated ?? (Math.max(0, ...inCollection.map((p) => p.timestamp ?? 0)) || null),
+    };
+  });
+}
+
 export function mergeCatalog(
   existing: Catalog,
   incoming: Catalog,
@@ -34,18 +48,8 @@ export function mergeCatalog(
   }
 
   const posts = [...byId.values()];
-  const names: string[] = [];
-  posts.forEach((p) => p.collections.forEach((n) => { if (n && !names.includes(n)) names.push(n); }));
-
-  const collections: Collection[] = names.map((name) => {
-    const inCollection = posts.filter((p) => p.collections.includes(name));
-    const original = existing.collections.find((c) => c.name === name) ?? incoming.collections.find((c) => c.name === name);
-    return {
-      name,
-      count: inCollection.length,
-      updated: original?.updated ?? (Math.max(0, ...inCollection.map((p) => p.timestamp ?? 0)) || null),
-    };
-  });
+  const prior = [...existing.collections, ...incoming.collections];
+  const collections = rebuildCollections(posts, prior);
 
   return { catalog: { posts, collections }, added, updated };
 }

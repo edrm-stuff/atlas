@@ -53,7 +53,8 @@ export function normalizeCatalogPost(item: unknown, i: number): CatalogPost {
   const caption = String(it.caption ?? it.description ?? it.text ?? "");
   const owner_username = String(it.owner_username ?? it.username ?? "");
   const owner_name = String(it.owner_name ?? it.owner ?? it.title ?? owner_username ?? "Unknown");
-  const type = String(it.type ?? inferType(url)).toLowerCase() as "reel" | "post";
+  const rawType = String(it.type ?? "").toLowerCase();
+  const type: "reel" | "post" = rawType === "reel" || rawType === "post" ? rawType : inferType(url);
   const timestamp = Number(it.timestamp ?? it.creation_timestamp ?? it.created_at ?? 0) || null;
   const collections = Array.isArray(it.collections) ? it.collections.map(String).filter(Boolean) : [];
 
