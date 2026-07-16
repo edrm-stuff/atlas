@@ -1,3 +1,5 @@
+import { esc } from "../utils.js";
+
 declare global {
   interface Window {
     instgrm?: { Embeds: { process: () => void } };
@@ -24,7 +26,7 @@ function fallback(container: HTMLElement, url: string): void {
   container.innerHTML = `
     <div class="embed-fallback">
       <div>Preview unavailable.</div>
-      <a href="${url}" target="_blank" rel="noopener noreferrer">Open on Instagram ↗</a>
+      <a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Open on Instagram ↗</a>
     </div>`;
 }
 
@@ -39,7 +41,7 @@ export function renderEmbed(container: HTMLElement, url: string): void {
   loadEmbedScript()
     .then(() => {
       if (done) return;
-      container.innerHTML = `<blockquote class="instagram-media" data-instgrm-permalink="${url}" data-instgrm-version="14"></blockquote>`;
+      container.innerHTML = `<blockquote class="instagram-media" data-instgrm-permalink="${esc(url)}" data-instgrm-version="14"></blockquote>`;
       window.instgrm?.Embeds.process();
       done = true;
       clearTimeout(timeout);

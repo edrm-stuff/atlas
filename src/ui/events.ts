@@ -3,7 +3,7 @@ import { saveUserState, replacePosts, putPosts, putCollections, deletePosts } fr
 import { openModal, closeModal, getModalId } from "./modal.js";
 import { renderNav, renderGrid, renderStats, extendGrid, updateCardInGrid } from "./render.js";
 import { normalizeImportedData, parseImportedText } from "../import/index.js";
-import { mergeCatalog } from "../import/merge.js";
+import { mergeCatalog, rebuildCollections } from "../import/merge.js";
 import { paintCollectionColors } from "./card.js";
 import { getTagColor, DEFAULT_COLOR, createTag } from "../tagColors.js";
 import { openColorPopover } from "./colorPopover.js";
@@ -53,19 +53,6 @@ export function wireEvents(): void {
   document.addEventListener("click", async (e) => {
     const t = e.target as HTMLElement;
 
-
-    // Smart tag / AI tag click → filter
-    const stagEl = t.closest("[data-stag]") as HTMLElement | null;
-    if (stagEl) {
-      const tag = stagEl.dataset.stag!;
-      closeModal();
-      const searchEl = document.getElementById("search") as HTMLInputElement | null;
-      if (searchEl) searchEl.value = tag;
-      _view.q = tag.toLowerCase();
-      renderGrid(_catalog, _state, _view);
-      document.querySelector("main")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
 
     // Tag color dot → open color popover (must not switch scope)
     const colorDotEl = t.closest("[data-colordot]") as HTMLElement | null;
@@ -299,18 +286,7 @@ async function handleEmptyTrash(): Promise<void> {
 
   ids.forEach((id) => { _state.purged[id] = true; delete _state.trash[id]; delete _state.fav[id]; delete _state.done[id]; delete _state.notes[id]; delete _state.tags[id]; });
   _catalog.posts = _catalog.posts.filter((p) => !ids.includes(p.id));
-
-  const names: string[] = [];
-  _catalog.posts.forEach((p) => p.collections.forEach((n) => { if (n && !names.includes(n)) names.push(n); }));
-  _catalog.collections = names.map((name) => {
-    const inCollection = _catalog.posts.filter((p) => p.collections.includes(name));
-    const original = _catalog.collections.find((c) => c.name === name);
-    return {
-      name,
-      count: inCollection.length,
-      updated: original?.updated ?? (Math.max(0, ...inCollection.map((p) => p.timestamp ?? 0)) || null),
-    };
-  });
+  _catalog.collections = rebuildCollections(_catalog.posts, _catalog.collections);
 
   await deletePosts(ids);
   await putCollections(_catalog.collections);

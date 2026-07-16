@@ -36,9 +36,11 @@ export function normalizeText(s: string | null | undefined): string {
 }
 
 export function decodeHtml(s: string | null | undefined): string {
+  const safeCodePoint = (n: number, match: string) =>
+    n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : match;
   return (s ?? "")
-    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&#(\d+);/g, (m, n) => safeCodePoint(Number(n), m))
+    .replace(/&#x([0-9a-f]+);/gi, (m, n) => safeCodePoint(parseInt(n, 16), m))
     .replace(/&nbsp;/g, " ")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")

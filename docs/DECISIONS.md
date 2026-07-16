@@ -26,6 +26,14 @@ and records their ids in `state.purged`, a tombstone set. Re-importing the same 
 never resurrects a purged id, even though the id (an Instagram shortcode) would
 otherwise match.
 
+## col: scope and byCollection kept in filter.ts
+The Collections nav was removed from the sidebar (commit 1482e74), but the
+`col:` scope filter and `byCollection` count map in `filter.ts`/`render.ts`
+are retained deliberately. Posts still carry `collections[]` data, the
+`rebuildCollections` helper keeps the count accurate, and the filter logic has
+existing tests. No UI path sets `col:` today, but the infrastructure is kept
+so Collections can be re-added without re-deriving it.
+
 ## Import is a merge, not a replace
 Importing no longer wipes the catalog. Posts are matched by id (Instagram shortcode);
 existing posts get their metadata refreshed (caption, owner, timestamp, type,
