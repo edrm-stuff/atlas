@@ -168,6 +168,9 @@ export function wireEvents(): void {
     // Import
     if (t.id === "import-btn") { document.getElementById("import-file")?.click(); return; }
 
+    // Export
+    if (t.closest("#export-btn")) { handleExport(); return; }
+
     // Reset
     if (t.id === "reset-btn") { await handleReset(); return; }
   });
@@ -249,11 +252,14 @@ async function handleImport(file: File): Promise<void> {
     const text = await file.text();
     const raw = parseImportedText(text, file.name);
     const { catalog: incoming, warning } = normalizeImportedData(raw, file.name);
+    restoreBackupState(raw);
     const { catalog, added, updated } = mergeCatalog(_catalog, incoming, _state.purged);
     _catalog = catalog;
     paintCollectionColors(_catalog.collections);
     await putPosts(_catalog.posts);
     await putCollections(_catalog.collections);
+    await saveUserState(_state);
+    void navigator.storage?.persist?.(); // ask the browser not to evict the catalog
     rerender();
     setSavemsg(`Imported ${added} new · refreshed ${updated} existing`);
     if (warning) alert(warning);
@@ -264,6 +270,25 @@ async function handleImport(file: File): Promise<void> {
     const input = document.getElementById("import-file") as HTMLInputElement | null;
     if (input) input.value = "";
   }
+}
+
+function handleExport(): void {
+  const blob = new Blob([JSON.stringify({ ..._catalog, state: _state })], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `atlas-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Atlas backups carry user state. Merge it in; values already in this browser win.
+function restoreBackupState(raw: unknown): void {
+  const s = (raw as { state?: Partial<UserState> } | null)?.state;
+  if (!s || typeof s !== "object") return;
+  for (const k of ["fav", "done", "notes", "tags", "tagColors", "trash", "purged"] as const) {
+    Object.assign(_state[k], { ...s[k], ..._state[k] });
+  }
+  if (Array.isArray(s.customTags)) _state.customTags = [...new Set([..._state.customTags, ...s.customTags])];
 }
 
 async function handleReset(): Promise<void> {

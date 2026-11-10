@@ -42,7 +42,7 @@ function parseInstagramSavedHtmlDom(html: string): CatalogPost[] {
     return {
       url, caption, title: "", owner_username,
       owner_name: owner_name || owner_username || "Instagram save",
-      owner_url, timestamp, id: shortcodeFromUrl(url) || `item-${i}`, type,
+      owner_url, timestamp, id: shortcodeFromUrl(url) || url || `item-${i}`, type,
       collections: [], saved: true,
       tldr: caption.slice(0, 120) || `${type} saved from Instagram.`,
       captionTags: buildCaptionTags(caption, extractHashtags(caption), type),
@@ -82,7 +82,7 @@ function parseInstagramSavedHtmlFallback(html: string): CatalogPost[] {
       url, caption, title: "", owner_username,
       owner_name: owner_name || owner_username || "Instagram save",
       owner_url, timestamp: parseSavedDate(dateText),
-      id: shortcodeFromUrl(url) || `item-${i}`, type,
+      id: shortcodeFromUrl(url) || url || `item-${i}`, type,
       collections: [], saved: true,
       tldr: caption.slice(0, 120) || `${type} saved from Instagram.`,
       captionTags: buildCaptionTags(caption, extractHashtags(caption), type),

@@ -49,7 +49,7 @@ export function normalizeCatalog(raw: unknown): Catalog {
 export function normalizeCatalogPost(item: unknown, i: number): CatalogPost {
   const it = item as Record<string, unknown>;
   const url = cleanUrl(it.url ?? it.href ?? it.uri ?? "");
-  const id = String((it.id ?? shortcodeFromUrl(url)) || `item-${i}`);
+  const id = String((it.id ?? shortcodeFromUrl(url)) || url || `item-${i}`);
   const caption = String(it.caption ?? it.description ?? it.text ?? "");
   const owner_username = String(it.owner_username ?? it.username ?? "");
   const owner_name = String(it.owner_name ?? it.owner ?? it.title ?? owner_username ?? "Unknown");

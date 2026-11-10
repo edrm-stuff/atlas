@@ -29,13 +29,14 @@ export function mergeCatalog(
     if (prev) {
       byId.set(post.id, {
         ...prev,
-        url: post.url,
-        caption: post.caption,
-        title: post.title,
-        owner_name: post.owner_name,
-        owner_username: post.owner_username,
-        owner_url: post.owner_url,
-        timestamp: post.timestamp,
+        // An export with missing metadata must not blank what we already have.
+        url: post.url || prev.url,
+        caption: post.caption || prev.caption,
+        title: post.title || prev.title,
+        owner_name: post.owner_name || prev.owner_name,
+        owner_username: post.owner_username || prev.owner_username,
+        owner_url: post.owner_url || prev.owner_url,
+        timestamp: post.timestamp ?? prev.timestamp,
         type: post.type,
         collections: [...new Set([...prev.collections, ...post.collections])],
         captionTags: [...new Set([...prev.captionTags, ...post.captionTags])].slice(0, 6),
