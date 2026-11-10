@@ -38,6 +38,13 @@ describe("mergeCatalog", () => {
     expect(merged.ai).toEqual({ status: "done" });
   });
 
+  it("keeps existing metadata when the incoming post has none", () => {
+    const existing: Catalog = { posts: [post({ caption: "kept", owner_username: "ana", timestamp: 5 })], collections: [] };
+    const incoming: Catalog = { posts: [post({ owner_name: "" })], collections: [] };
+    const merged = mergeCatalog(existing, incoming, {}).catalog.posts[0];
+    expect(merged).toMatchObject({ caption: "kept", owner_username: "ana", owner_name: "Unknown", timestamp: 5 });
+  });
+
   it("unions collections instead of overwriting them", () => {
     const existing: Catalog = { posts: [post({ id: "P1", collections: ["A"] })], collections: [] };
     const incoming: Catalog = { posts: [post({ id: "P1", collections: ["B"] })], collections: [] };
